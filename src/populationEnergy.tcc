@@ -66,7 +66,7 @@ std::vector<gum::NodeId> populationEnergyOrder(
 }
 
 
-std::set<gum::NodeId> potentialsUnion(std::set<gum::NodeId>& potential1, std::set<gum::NodeId>& potential2) {
+std::set<gum::NodeId> potentialsUnion(std::set<gum::NodeId> potential1, std::set<gum::NodeId> potential2) {
     std::set<gum::NodeId> product;
     for (auto var : potential1) {
         product.insert(var);
@@ -138,13 +138,13 @@ int populationEnergyScore(gum::NodeId nodeId, std::vector<std::set<gum::NodeId>>
                         product = numOfMult(potential1, potential2, bn);
                         // ### DEBUG
                         // std::cout << ">>> VARs 1:" << std::endl;
-                        // for (auto var : potential1) {
-                        //     std::cout << var << " ";
-                        // }
+                        for (auto var : potential1) {
+                            // std::cout << var << " ";
+                        }
                         // std::cout << ">>> VARs 2:" << std::endl;
-                        // for (auto var : potential2) {
-                        //     std::cout << var << " ";
-                        // }
+                        for (auto var : potential2) {
+                            // std::cout << var << " ";
+                        }
                         // std::cout << std::endl;
                         // --- DEBUG
                         // std::cout << product << std::endl;

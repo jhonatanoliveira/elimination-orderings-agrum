@@ -3,6 +3,7 @@
 #include <ctime>
 #include <stdlib.h>
 #include <string>
+#include <set>
 
 #include "eliminationOrderings.tcc"
 #include "heuristics.tcc"
@@ -19,21 +20,26 @@ gum::NodeId chooseVariable(std::vector<gum::NodeId>& allVariables, std::set<gum:
 int main(void) {
 
     // ######### CONFIGURATIONS
-    const std::string databaseNames[] = {"asia", "alarm", "barley", "insurance", "mildew", "hepar2", "diabetes", "pathfinder", "munin"};
-    int runQuantities = 1000;
+    // const std::string databaseNames[] = {"asia", "alarm", "barley", "insurance", "mildew", "hepar2", "diabetes", "pathfinder", "munin"};
+    const std::string databaseNames[] = {"asia"};
+    // const std::string databaseNames[] = {"diabetes", "pathfinder", "munin"};
+    int runQuantities = 2;
+    // reset seed for random numbers
+    srand(time(NULL));
 
     for (auto databaseName : databaseNames) {
 
         std::ofstream resultsFile;
         resultsFile.open (databaseName + ".csv");
+        resultsFile << "run" << "," << "bn" << "," << "heuristic" << "," << "time" << "\n";
+
+        std::cout << ">>> Loading BN " << databaseName << std::endl;
+        gum::BayesNet<double> bn;
+        gum::BIFReader<double> bifReader(&bn, "../datatest/" + databaseName + ".bif");
+        bifReader.proceed();
+        std::cout << ">>> BN loaded with " << bn.size() << " nodes."  << std::endl;
 
         for (int runNumber = 0; runNumber < runQuantities; runNumber++) {
-
-            std::cout << ">>> Loading BN " << databaseName << std::endl;
-            gum::BayesNet<double> bn;
-            gum::BIFReader<double> bifReader(&bn, "../datatest/" + databaseName + ".bif");
-            bifReader.proceed();
-            std::cout << ">>> BN loaded with " << bn.size() << " nodes."  << std::endl;
 
             std::cout << ">>> Finding elimination ordering..."  << std::endl;
 
@@ -67,7 +73,7 @@ int main(void) {
             gum::VariableElimination<double> ve(bn);
 
             // *** MN ***
-            std::cout << ">> Min Neighbours with " << bn.size() << " variables." << std::endl;
+            std::cout << ">> Min Neighbours with " << bn.size() << " variables " << " in run " << runNumber << "." << std::endl;
             funcPointer = &minNeighbours;
             std::vector<gum::NodeId> eliminationOrderMN = findEliminationOrder(variables, bn, funcPointer);
             for (auto varId : eliminationOrderMN) {
@@ -89,7 +95,7 @@ int main(void) {
             resultsFile << runNumber << "," << databaseName << "," << "MN" << "," << durationMN << "\n";
 
             // *** MW ***
-            std::cout << ">> Min Weight with " << bn.size() << " variables." << std::endl;
+            std::cout << ">> Min Weight with " << bn.size() << " variables " << " in run " << runNumber << "." << std::endl;
             funcPointer = &minWeight;
             std::vector<gum::NodeId> eliminationOrderMW = findEliminationOrder(variables, bn, funcPointer);
             for (auto varId : eliminationOrderMW) {
@@ -111,7 +117,7 @@ int main(void) {
             resultsFile << runNumber << "," << databaseName << "," << "MW" << "," << durationMW << "\n";
 
             // *** MF ***
-            std::cout << ">> Min Fill with " << bn.size() << " variables." << std::endl;
+            std::cout << ">> Min Fill with " << bn.size() << " variables " << " in run " << runNumber << "." << std::endl;
             funcPointer = &minFill;
             std::vector<gum::NodeId> eliminationOrderMF = findEliminationOrder(variables, bn, funcPointer);
             for (auto varId : eliminationOrderMF) {
@@ -133,7 +139,7 @@ int main(void) {
             resultsFile << runNumber << "," << databaseName << "," << "MF" << "," << durationMF << "\n";
 
             // *** WMF ***
-            std::cout << ">> WeightedMinFill with " << bn.size() << " variables." << std::endl;
+            std::cout << ">> WeightedMinFill with " << bn.size() << " variables " << " in run " << runNumber << "." << std::endl;
             funcPointer = &weightedMinFill;
             std::vector<gum::NodeId> eliminationOrderWMF = findEliminationOrder(variables, bn, funcPointer);
             for (auto varId : eliminationOrderWMF) {
@@ -155,8 +161,27 @@ int main(void) {
             resultsFile << runNumber << "," << databaseName << "," << "WMF" << "," << durationWMF << "\n";
 
             // *** PE ***
-            std::cout << ">> PopulationEnergy with " << bn.size() << " variables." << std::endl;
-            std::vector<gum::NodeId> eliminationOrderPE = populationEnergyOrder(variables, bn);
+            std::cout << ">> PopulationEnergy with " << bn.size() << " variables " << " in run " << runNumber << "." << std::endl;
+            std::cout << ">> Computing order" << std::endl;
+            // ### TEST
+            std::vector<gum::NodeId> eliminationOrderPE2 = populationEnergyOrder(variables, bn);
+            // --- TEST
+            funcPointer = &populationEnergy;
+            std::vector<gum::NodeId> eliminationOrderPE = findEliminationOrder(variables, bn, funcPointer);
+            // ### TEST
+            std::cout << "--> Old version: ";
+            for (auto var : eliminationOrderPE2) {
+                std::cout << bn.variable(var).name() << " ";
+            }
+            std::cout << std::endl;
+            std::cout << "--> New version: ";
+            for (auto var : eliminationOrderPE) {
+                std::cout << bn.variable(var).name() << " ";
+            }
+            std::cout << std::endl;
+            // std::cout << "--> Are they equal? " << eliminationOrderPE2==eliminationOrderPE << std::endl;
+            // --- TEST
+            std::cout << ">> Running VE" << std::endl;
             for (auto varId : eliminationOrderPE) {
                 std::cout << bn.variable(varId).name() << " ";
             }
@@ -186,7 +211,6 @@ int main(void) {
 gum::NodeId chooseVariable(std::vector<gum::NodeId>& allVariables, std::set<gum::NodeId>& chosenVariables) {
     gum::NodeId chosenVar;
     while(true) {
-        srand(time(NULL));
         int rnd = rand();
         int randomIdx = rnd % allVariables.size();
         chosenVar = allVariables[randomIdx];

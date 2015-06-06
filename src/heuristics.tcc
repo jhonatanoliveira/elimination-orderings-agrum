@@ -60,4 +60,14 @@ int weightedMinFill(gum::NodeId& nodeId, gum::UndiGraph& undirectedGraph, gum::B
 }
 
 
+template<typename GUM_SCALAR>
+int populationEnergy(gum::NodeId& nodeId, gum::UndiGraph& undirectedGraph, gum::BayesNet<GUM_SCALAR>& bn) {
+    int product = bn.variable(nodeId).domainSize();
+    for (auto neighbour : undirectedGraph.neighbours(nodeId)) {
+        product *= bn.variable(neighbour).domainSize();
+    }
+    return product;
+}
+
+
 #endif
